@@ -31,15 +31,15 @@ registerfile.hw/
 registerfile.ip_user_files/
 registerfile.runs/
 registerfile.sim/
+registerfile/
 registerfile.xpr
 registerfile.lpr
 
 # Simulation outputs
-*.vcd
+
 *.wdb
 
-# Shell scripts (if generated)
-run_ifx_regfile_tb.sh
+
 
 # System files
 .DS_Store
