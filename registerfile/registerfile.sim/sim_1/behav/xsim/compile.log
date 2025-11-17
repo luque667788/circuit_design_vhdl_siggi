@@ -1,0 +1,5 @@
+INFO: [VRFC 10-163] Analyzing VHDL file "/home/lstud/Documents/temp/luizvhdl/src/ifx_regfile_e.vhdl" into library xil_defaultlib
+INFO: [VRFC 10-3107] analyzing entity 'ifx_regfile_e'
+INFO: [VRFC 10-163] Analyzing VHDL file "/home/lstud/Documents/temp/luizvhdl/src/ifx_regfile_a.vhdl" into library xil_defaultlib
+INFO: [VRFC 10-163] Analyzing VHDL file "/home/lstud/Documents/temp/luizvhdl/tb/ifx_regfile_tb.vhdl" into library xil_defaultlib
+INFO: [VRFC 10-3107] analyzing entity 'ifx_regfile_tb'

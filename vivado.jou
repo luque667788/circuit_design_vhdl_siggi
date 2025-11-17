@@ -1,0 +1,29 @@
+#-----------------------------------------------------------
+# Vivado v2024.2 (64-bit)
+# SW Build 5239630 on Fri Nov 08 22:34:34 MST 2024
+# IP Build 5239520 on Sun Nov 10 16:12:51 MST 2024
+# SharedData Build 5239561 on Fri Nov 08 14:39:27 MST 2024
+# Start of session at: Mon Nov 10 11:58:07 2025
+# Process ID         : 13591
+# Current directory  : /home/lstud/Documents/temp/luizvhdl
+# Command line       : vivado .
+# Log file           : /home/lstud/Documents/temp/luizvhdl/vivado.log
+# Journal file       : /home/lstud/Documents/temp/luizvhdl/vivado.jou
+# Running On         : AP120060
+# Platform           : Ubuntu
+# Operating System   : Ubuntu 24.04.2 LTS
+# Processor Detail   : Intel(R) Core(TM) i5-14500T
+# CPU Frequency      : 4373.773 MHz
+# CPU Physical cores : 14
+# CPU Logical cores  : 20
+# Host memory        : 33323 MB
+# Swap memory        : 4294 MB
+# Total Virtual      : 37618 MB
+# Available Virtual  : 34544 MB
+#-----------------------------------------------------------
+start_gui
+open_project /home/lstud/Documents/temp/luizvhdl/registerfile/registerfile.xpr
+update_compile_order -fileset sources_1
+launch_simulation
+source ifx_regfile_tb.tcl
+close_sim
