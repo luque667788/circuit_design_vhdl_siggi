@@ -1,8 +1,0 @@
-v 4
-file "/home/luque/Documents/UNI/sem4/vhdl2/the top simulation/luizvhdl/" "src/ifx_regfile_a.vhdl" "fce8ec19f6cdb610782ff18fe603f9dde8758435" "20251117110802.126":
-  architecture rtl of ifx_regfile_e at 9( 411) + 0 on 32;
-file "/home/luque/Documents/UNI/sem4/vhdl2/the top simulation/luizvhdl/" "src/ifx_regfile_e.vhdl" "919e43a21b15c2fdf320462a4ff5b6c3d8e06f2d" "20251117110802.104":
-  entity ifx_regfile_e at 9( 411) + 0 on 31;
-file "/home/luque/Documents/UNI/sem4/vhdl2/the top simulation/luizvhdl/" "tb/ifx_regfile_tb.vhdl" "24865a23d768a33c2da1635145d83ad992501404" "20251117110802.157":
-  entity ifx_regfile_tb at 11( 559) + 0 on 33;
-  architecture tb of ifx_regfile_tb at 21( 819) + 0 on 34;

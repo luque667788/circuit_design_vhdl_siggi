@@ -1,8 +1,0 @@
-# compile vhdl design source files
-vhdl xil_defaultlib  \
-"../../../../../src/ifx_regfile_e.vhdl" \
-"../../../../../src/ifx_regfile_a.vhdl" \
-"../../../../../tb/ifx_regfile_tb.vhdl" \
-
-# Do not sort compile order
-nosort

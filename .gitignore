@@ -1,0 +1,49 @@
+# Vivado/VHDL build and temp files
+*.jou
+*.log
+*.backup.jou
+*.backup.log
+*.pb
+*.wdb
+*.tcl
+*.ini
+*.xpr
+*.lpr
+*.vdb
+*.svtype
+*.type
+*.dbg
+*.mem
+*.reloc
+*.rlx
+*.rtti
+*.xdbg
+*.xsimk
+*.db
+*.svtype
+*.type
+
+# Vivado project folders
+.Xil/
+work/
+results/
+registerfile.hw/
+registerfile.ip_user_files/
+registerfile.runs/
+registerfile.sim/
+registerfile.xpr
+registerfile.lpr
+
+# Simulation outputs
+*.vcd
+*.wdb
+
+# Shell scripts (if generated)
+run_ifx_regfile_tb.sh
+
+# System files
+.DS_Store
+Thumbs.db
+
+# VSCode settings
+.vscode/
