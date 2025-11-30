@@ -1,54 +1,109 @@
--- ###########################################################################
---  ifx_regfile
--- ###########################################################################
-
 LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
 USE ieee.numeric_std.ALL;
 
-ARCHITECTURE rtl OF ifx_regfile_e IS
-    CONSTANT addr_capacity_c : NATURAL := 2 ** addr_width_g;
-    SUBTYPE reg_index_t IS NATURAL RANGE 0 TO register_count_g - 1; -- the number of registers but with 0-based index
-    TYPE reg_array_t IS ARRAY (reg_index_t) OF STD_LOGIC_VECTOR(data_width_g - 1 DOWNTO 0); -- each register is data_width_g wide (example 8 bits)
-    SIGNAL storage_r : reg_array_t := (OTHERS => (OTHERS => '0')); -- we have an array of arrays (like multiple registers each 8 bits wide) so it is basically a 2D array
-    SIGNAL read_r : STD_LOGIC_VECTOR(data_width_g - 1 DOWNTO 0) := (OTHERS => '0');
+ARCHITECTURE ifx_regfile_a OF ifx_regfile_e IS
+    TYPE state_t IS (ST_IDLE, ST_WRITE, ST_READ, ST_DONE);
+    SIGNAL current_state : state_t := ST_IDLE;
+    SIGNAL next_state    : state_t := ST_IDLE;
 
+    TYPE reg_array_t IS ARRAY (0 TO count_g - 1) OF STD_LOGIC_VECTOR(width_g - 1 DOWNTO 0);
+    SIGNAL registers : reg_array_t;
+    SIGNAL out_buf   : STD_LOGIC_VECTOR(width_g - 1 DOWNTO 0) := (OTHERS => '0');
+    SIGNAL reg_load  : STD_LOGIC_VECTOR(0 TO count_g - 1) := (OTHERS => '0');
 BEGIN
-
-    ASSERT register_count_g <= addr_capacity_c
-    REPORT "Address width does not cover register count" SEVERITY failure;
-
-
-    -- State machine: Reset, Idle, Active (Read/Write/Bypass)
-    -- State Machine Inputs:
-    -- rst_i, en_i, wr_en_i
-
-    -- Address Inputs: wr_addr_i, rd_addr_i
-
-    -- Outputs: rd_data_o
-
-    PROCESS (clk_i)
-        VARIABLE wr_idx_v : reg_index_t;
-        VARIABLE rd_idx_v : reg_index_t;
+    -- State register with synchronous reset
+    state_reg : PROCESS (clk_i)
     BEGIN
         IF rising_edge(clk_i) THEN
-            IF rst_i = '1' THEN -- RESET STATE
-                storage_r <= (OTHERS => (OTHERS => '0'));
-                read_r <= (OTHERS => '0');
-            ELSIF en_i = '1' THEN -- ENABLED
-                rd_idx_v := reg_index_t(to_integer(unsigned(rd_addr_i))); -- Always able to read if it is enabled
-                read_r <= storage_r(rd_idx_v);
-                IF wr_en_i = '1' THEN -- If write is enabled we can also modify the register file
-                    wr_idx_v := reg_index_t(to_integer(unsigned(wr_addr_i)));
-                    storage_r(wr_idx_v) <= wr_data_i; -- actually write
-                    IF wr_idx_v = rd_idx_v THEN -- If we are writing to the same address we are reading, update read_r with newly written data
-                        read_r <= wr_data_i;
+            IF rst_i = '1' THEN
+                current_state <= ST_IDLE;
+            ELSE
+                current_state <= next_state;
+            END IF;
+        END IF;
+    END PROCESS state_reg;
+
+    -- Next-state logic driven by control requests
+    next_state_logic : PROCESS (current_state, en_i, we_i, re_i)
+    BEGIN
+        next_state <= current_state;
+
+        CASE current_state IS
+            WHEN ST_IDLE =>
+                IF en_i = '1' THEN
+                    IF we_i = '1' THEN
+                        next_state <= ST_WRITE;
+                    ELSIF re_i = '1' THEN
+                        next_state <= ST_READ;
+                    ELSE
+                        next_state <= ST_IDLE;
                     END IF;
+                ELSE
+                    next_state <= ST_IDLE;
+                END IF;
+
+            WHEN ST_WRITE =>
+                next_state <= ST_DONE;
+
+            WHEN ST_READ =>
+                next_state <= ST_DONE;
+
+            WHEN ST_DONE =>
+                next_state <= ST_IDLE;
+
+            WHEN OTHERS =>
+                next_state <= ST_IDLE;
+        END CASE;
+    END PROCESS next_state_logic;
+
+    -- Instantiate one flip-flop register per storage element
+    gen_registers : FOR i IN 0 TO count_g - 1 GENERATE
+        reg_cell : ENTITY work.ifx_reg_cell_e
+            GENERIC MAP(
+                width_g => width_g
+            )
+            PORT MAP(
+                clk_i  => clk_i,
+                rst_i  => rst_i,
+                load_i => reg_load(i),
+                data_i => data_in,
+                data_o => registers(i)
+            );
+    END GENERATE gen_registers;
+
+    -- Decode write enable per register
+    reg_load_decode : PROCESS (current_state, wr_addr_i)
+        VARIABLE tmp : STD_LOGIC_VECTOR(0 TO count_g - 1);
+        VARIABLE idx : INTEGER;
+    BEGIN
+        tmp := (OTHERS => '0');
+        IF current_state = ST_WRITE THEN
+            idx := to_integer(unsigned(wr_addr_i));
+            IF idx >= 0 AND idx < count_g THEN
+                tmp(idx) := '1';
+            END IF;
+        END IF;
+        reg_load <= tmp;
+    END PROCESS reg_load_decode;
+
+    -- Capture read data into output buffer
+    read_buffer : PROCESS (clk_i)
+        VARIABLE idx : INTEGER;
+    BEGIN
+        IF rising_edge(clk_i) THEN
+            IF rst_i = '1' THEN
+                out_buf <= (OTHERS => '0');
+            ELSIF current_state = ST_READ THEN
+                idx := to_integer(unsigned(rd_addr_i));
+                IF idx >= 0 AND idx < count_g THEN
+                    out_buf <= registers(idx);
                 END IF;
             END IF;
         END IF;
-    END PROCESS;
+    END PROCESS read_buffer;
 
-    rd_data_o <= read_r; -- OUTPUT read data output
+    data_out <= out_buf;
+    ready_o  <= '1' WHEN current_state = ST_DONE ELSE '0';
 
-END ARCHITECTURE rtl;
+END ifx_regfile_a;
