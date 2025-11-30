@@ -48,8 +48,3 @@ Below is the timing digram of the example timeline described above:
 ## Simulation
 - Run `./run_ifx_regfile_tb.sh --clean --gui` to build and test
 - The testbench checks reset, read-after-write, and the ready signal
-
-## Change it
-- For more registers, set `count_g` higher and make addresses bigger
-- For wait states, add more states to the machine
-- For extra status, add logic to the done state
