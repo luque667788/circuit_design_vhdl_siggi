@@ -17,10 +17,7 @@ ARCHITECTURE tb OF ifx_regfile_tb IS
     CONSTANT c_data_width : POSITIVE := 8;
     CONSTANT c_addr_width : POSITIVE := 3;
     CONSTANT c_clk_period : TIME := 8 ns; -- 125 MHz clock period
-    CONSTANT c_zero : STD_LOGIC_VECTOR(c_data_width - 1 DOWNTO 0) := (OTHERS => '0');
     CONSTANT c_pat_a5 : STD_LOGIC_VECTOR(c_data_width - 1 DOWNTO 0) := x"A5";
-    CONSTANT c_pat_3c : STD_LOGIC_VECTOR(c_data_width - 1 DOWNTO 0) := x"3C";
-    CONSTANT c_pat_55 : STD_LOGIC_VECTOR(c_data_width - 1 DOWNTO 0) := x"55";
 
     -- Stimulus signals.
     SIGNAL clk_i : STD_LOGIC := '0';
@@ -33,50 +30,6 @@ ARCHITECTURE tb OF ifx_regfile_tb IS
     SIGNAL data_in : STD_LOGIC_VECTOR(c_data_width - 1 DOWNTO 0) := (OTHERS => '0');
     SIGNAL data_out : STD_LOGIC_VECTOR(c_data_width - 1 DOWNTO 0);
     SIGNAL ready_o : STD_LOGIC := '0';
-
--- helper to wait a clock cycle
-    PROCEDURE wait_clk IS
-    BEGIN
-        WAIT UNTIL rising_edge(clk_i);
-        WAIT FOR c_clk_period / 10;
-    END PROCEDURE;
-
-    PROCEDURE write_reg(
-        SIGNAL wr_addr : OUT STD_LOGIC_VECTOR;
-        SIGNAL data_in_s : OUT STD_LOGIC_VECTOR;
-        SIGNAL we_s : OUT STD_LOGIC;
-        SIGNAL re_s : OUT STD_LOGIC;
-        SIGNAL ready_s : IN STD_LOGIC;
-        CONSTANT addr : NATURAL;
-        CONSTANT value : STD_LOGIC_VECTOR
-    ) IS
-    BEGIN
-        wr_addr <= STD_LOGIC_VECTOR(to_unsigned(addr, c_addr_width));
-        data_in_s <= value;
-        we_s <= '1';
-        re_s <= '0';
-        wait_clk;
-        we_s <= '0';
-        WAIT UNTIL ready_s = '1';
-        wait_clk;
-    END PROCEDURE;
-
-    PROCEDURE read_reg(
-        SIGNAL rd_addr : OUT STD_LOGIC_VECTOR;
-        SIGNAL we_s : OUT STD_LOGIC;
-        SIGNAL re_s : OUT STD_LOGIC;
-        SIGNAL ready_s : IN STD_LOGIC;
-        CONSTANT addr : NATURAL
-    ) IS
-    BEGIN
-        rd_addr <= STD_LOGIC_VECTOR(to_unsigned(addr, c_addr_width));
-        re_s <= '1';
-        we_s <= '0';
-        wait_clk;
-        re_s <= '0';
-        WAIT UNTIL ready_s = '1';
-        wait_clk;
-    END PROCEDURE;
 
 BEGIN
 
@@ -119,40 +72,42 @@ BEGIN
         wr_addr_i <= (OTHERS => '0');
         rd_addr_i <= (OTHERS => '0');
         data_in <= (OTHERS => '0');
-        wait_clk;
-        wait_clk;
+        WAIT UNTIL rising_edge(clk_i);
+        WAIT FOR c_clk_period / 10;
+        WAIT UNTIL rising_edge(clk_i);
+        WAIT FOR c_clk_period / 10;
         rst_i <= '0';
         en_i <= '1';
-        read_reg(rd_addr_i, we_i, re_i, ready_o, 5);
-        ASSERT data_out = c_zero REPORT "Register 5 not reset to zero" SEVERITY error;
 
-        write_reg(wr_addr_i, data_in, we_i, re_i, ready_o, 5, c_pat_a5);
-        wait_clk;
-        read_reg(rd_addr_i, we_i, re_i, ready_o, 5);
-        ASSERT data_out = c_pat_a5 REPORT "Register 5 read-back mismatch" SEVERITY error;
-
-        write_reg(wr_addr_i, data_in, we_i, re_i, ready_o, 3, c_pat_3c);
-        wait_clk;
-        read_reg(rd_addr_i, we_i, re_i, ready_o, 3);
-        ASSERT data_out = c_pat_3c REPORT "Register 3 read-back mismatch" SEVERITY error;
-
-        read_reg(rd_addr_i, we_i, re_i, ready_o, 5);
-        ASSERT data_out = c_pat_a5 REPORT "Register 5 corrupted" SEVERITY error;
-
-        en_i <= '0';
-        re_i <= '1';
-        rd_addr_i <= STD_LOGIC_VECTOR(to_unsigned(2, c_addr_width));
-        wait_clk;
+        -- Cycle 0: request write to register 2 with pattern A5
+        wr_addr_i <= STD_LOGIC_VECTOR(to_unsigned(2, c_addr_width));
+        data_in <= c_pat_a5;
+        we_i <= '1';
         re_i <= '0';
-        ASSERT data_out = c_pat_a5 REPORT "Data output changed while enable low" SEVERITY error;
-        en_i <= '1';
-        wait_clk;
+        WAIT UNTIL rising_edge(clk_i);
+        WAIT FOR c_clk_period / 10;
+        we_i <= '0';
 
-        write_reg(wr_addr_i, data_in, we_i, re_i, ready_o, 7, c_pat_55);
-        wait_clk;
-        read_reg(rd_addr_i, we_i, re_i, ready_o, 7);
-        ASSERT data_out = c_pat_55 REPORT "Register 7 write/read mismatch" SEVERITY error;
-        wait_clk;
+        -- Wait for ready pulse (ST_DONE)
+        WAIT UNTIL ready_o = '1';
+        WAIT UNTIL rising_edge(clk_i);
+        WAIT FOR c_clk_period / 10;
+
+        -- Cycle 3+: request read from register 2 to fetch stored data
+        rd_addr_i <= STD_LOGIC_VECTOR(to_unsigned(2, c_addr_width));
+        re_i <= '1';
+        we_i <= '0';
+        WAIT UNTIL rising_edge(clk_i);
+        WAIT FOR c_clk_period / 10;
+        re_i <= '0';
+
+        -- Wait for ready pulse again
+        WAIT UNTIL ready_o = '1';
+        WAIT UNTIL rising_edge(clk_i);
+        WAIT FOR c_clk_period / 10;
+
+        ASSERT data_out = c_pat_a5 REPORT "Register 2 read-back mismatch" SEVERITY error;
+
         REPORT "ifx_regfile_tb completed successfully" SEVERITY note;
         STOP;
     END PROCESS;

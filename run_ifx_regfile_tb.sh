@@ -54,6 +54,7 @@ GHDL_OPTS=(--std=08 --workdir="${BUILD_DIR}")
 VHDL_SOURCES=(
 	src/ifx_regfile_e.vhdl
 	src/ifx_reg_cell_e.vhdl
+	src/ifx_reg_cell_a.vhdl
 	src/ifx_regfile_a.vhdl
 	tb/ifx_regfile_tb.vhdl
 )

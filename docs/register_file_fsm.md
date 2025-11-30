@@ -1,6 +1,6 @@
 # FSM State Diagram
 
-The state machine captures requests in `ST_IDLE`, performs the operation, then exposes a one-cycle `ready_o` pulse in `ST_DONE` before returning to idle.
+
 
 ```mermaid
 stateDiagram-v2
