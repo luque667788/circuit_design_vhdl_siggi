@@ -1,50 +1,50 @@
-# Register File Usage
+# Register File Quick Usage
 
-## Overview
-- Name: `fsm_3block_regfile`
-- Settings:
-  - `width_g`: how many bits in each register (default 8)
-  - `count_g`: how many registers (default 8)
+This is a short, practical guide for using `fsm_3block_regfile`. For a full description of ports and behaviour, see the top-level `README.md`.
 
-## States
-- `ST_IDLE`: wait for a request; `ready_o` is low. If both read and write are high, write wins.
-- `ST_WRITE`: decode `wr_addr_i`, enable one register, and load `data_in` on this clock
-- `ST_READ`: read from register and put it in `data_out`
-- `ST_DONE`: `ready_o` is high for one clock, then go back to idle
+## What it is
 
-## How it works
-- Each register is a flip-flop cell (`ifx_reg_cell_e`).
+- A small synchronous register file with `width_g` bits per register and `count_g` registers.
+- You talk to it with a simple request / ready handshake.
 
-## Ports
-- `clk_i`: clock
-- `rst_i`: reset, clears everything
-- `en_i`: enable, must be high to work
-- `we_i`: write request, checked in idle
-- `re_i`: read request, checked in idle
-- `wr_addr_i`: write address, decoded only in the write state
-- `rd_addr_i`: read address, decoded only in the read state
-- `data_in`: data to write, sampled in the write state
-- `data_out`: data you read, valid in and after done (ready_o = 1)
-- `ready_o`: high for one clock in done, shows request is finished
+## Basic rules
 
-## How to use
-1. Set `en_i = '1'` and set `we_i` or `re_i` (not both) with address and data
-2. Keep the request for one clock so the machine sees it in idle
-3. After the clock, turn off the request; the machine goes to write (or read if only `re_i` was high), then done
-4. On the next clock, check `ready_o = '1'`. If you read, get `data_out` now if it was a read request otherwise it is just a confirmation we wrote data successfully.
-5. The machine goes back to idle, ready for the next request
+- Only **one request at a time**: either write (`we_i`) or read (`re_i`), not both.
+- All signals are sampled on the **rising edge** of `clk_i`.
+- `en_i` must be `'1'` or the request is ignored.
+- When a request finishes, `ready_o` goes high for **one clock**.
 
-### Example timeline
-- **Cycle 0 (ST_IDLE)**: `en_i=1`, `we_i=1`, `re_i=0`, `wr_addr_i="010"`, `data_in=x"A5"`. FSM sees request at rising edge.
-- **Cycle 1 (ST_WRITE)**: Register 2 loads `A5`. `we_i` can drop to 0 now.
-- **Cycle 2 (ST_DONE)**: `ready_o=1` for one clock. User knows write finished.
-- **Cycle 3 (ST_IDLE)**: Ready for next request. Suppose `re_i=1`, `we_i=1`, `rd_addr_i="010"`.
-- **Cycle 4 (ST_READ)**: Data from register 2 moves into `data_out`.
-- **Cycle 5 (ST_DONE)**: `ready_o=1` again; user samples `data_out=A5`.
+## Write sequence
 
-Below is the timing digram of the example timeline described above:
+1. Set `en_i = '1'`.
+2. Set `we_i = '1'`, `re_i = '0'`.
+3. Drive `wr_addr_i` and `data_in` to the desired values.
+4. Wait for one clock edge, then you can drop `we_i`.
+5. Wait until `ready_o = '1'` for one clock → write is done.
 
-![alt text](image.png)
+## Read sequence
+
+1. Set `en_i = '1'`.
+2. Set `re_i = '1'`, `we_i = '0'`.
+3. Drive `rd_addr_i` to the desired register.
+4. Wait for one clock edge, then you can drop `re_i`.
+5. Wait until `ready_o = '1'` → on that clock, `data_out` holds the register value.
+
+## Example: write then read
+
+- Write `x"A5"` to register 2:
+  - `en_i=1`, `we_i=1`, `re_i=0`, `wr_addr_i="010"`, `data_in=x"A5"` for one clock.
+  - Later, when `ready_o` pulses high, the write is complete.
+- Read it back:
+  - `en_i=1`, `re_i=1`, `we_i=0`, `rd_addr_i="010"` for one clock.
+  - When `ready_o` pulses high, sample `data_out` → should be `x"A5"`.
+
 ## Simulation
-- Run `./run_ifx_regfile_tb.sh --clean --gui` to build and test
-- The testbench checks reset, read-after-write, and the ready signal
+
+To see this in action, run the provided testbench:
+
+```sh
+./run_ifx_regfile_tb.sh --clean --gui
+```
+
+The testbench performs a write and a read and checks that the read-back value matches.
