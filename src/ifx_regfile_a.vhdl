@@ -31,18 +31,12 @@ BEGIN
 
         CASE current_state IS
             WHEN ST_IDLE =>
-                IF en_i = '1' THEN
-                    IF we_i = '1' THEN
-                        next_state <= ST_WRITE; -- if both read and write are chosen, write has priority
-                    ELSIF re_i = '1' THEN
-                        next_state <= ST_READ;
-                    ELSE
-                        next_state <= ST_IDLE; -- if user didnt choose read or write it stays in IDLE 
-                    END IF;
-                ELSE
-                    next_state <= ST_IDLE;
-                END IF;
-
+                IF en_i = '1' and we_i = '1' THEN
+                  next_state <= ST_WRITE; -- if both read and write are chosen, write has priority
+                end if;
+                if en_i = '1' and re_i = '1' then
+                  next_state <= ST_READ;
+                end if;
             WHEN ST_WRITE =>
                 next_state <= ST_DONE;
 

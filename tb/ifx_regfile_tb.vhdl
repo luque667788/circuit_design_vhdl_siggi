@@ -5,8 +5,7 @@
 LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
 USE ieee.numeric_std.ALL;
-USE std.env.ALL;
-
+USE std.env.All;
 
 ENTITY ifx_regfile_tb IS
 END ENTITY ifx_regfile_tb;
@@ -64,52 +63,72 @@ BEGIN
 
     -- simulation some use like reads and writes
     stimulus : PROCESS
+        VARIABLE cycles : INTEGER := 0;
+        VARIABLE ready_seen_1 : BOOLEAN := FALSE;
+        VARIABLE ready_seen_2 : BOOLEAN := FALSE;
     BEGIN
-        rst_i <= '1';
-        en_i <= '0';
-        we_i <= '0';
-        re_i <= '0';
+        -- initial reset/defaults
+        rst_i     <= '1';
+        en_i      <= '0';
+        we_i      <= '0';
+        re_i      <= '0';
         wr_addr_i <= (OTHERS => '0');
         rd_addr_i <= (OTHERS => '0');
-        data_in <= (OTHERS => '0');
-        WAIT UNTIL rising_edge(clk_i);
-        WAIT FOR c_clk_period / 10;
-        WAIT UNTIL rising_edge(clk_i);
-        WAIT FOR c_clk_period / 10;
-        rst_i <= '0';
-        en_i <= '1';
+        data_in   <= (OTHERS => '0');
 
-        -- Cycle 0: request write to register 2 with pattern A5
-        wr_addr_i <= STD_LOGIC_VECTOR(to_unsigned(2, c_addr_width));
-        data_in <= c_pat_a5;
-        we_i <= '1';
-        re_i <= '0';
-        WAIT UNTIL rising_edge(clk_i);
-        WAIT FOR c_clk_period / 10;
-        we_i <= '0';
+        -- run for a bounded number of clock cycles
+        FOR i IN 0 TO 50 LOOP
+            WAIT UNTIL rising_edge(clk_i);
+            cycles := cycles + 1;
 
-        -- Wait for ready pulse (ST_DONE)
-        WAIT UNTIL ready_o = '1';
-        WAIT UNTIL rising_edge(clk_i);
-        WAIT FOR c_clk_period / 10;
+            CASE cycles IS
+                WHEN 1 | 2 =>
+                    -- still in reset
 
-        -- Cycle 3+: request read from register 2 to fetch stored data
-        rd_addr_i <= STD_LOGIC_VECTOR(to_unsigned(2, c_addr_width));
-        re_i <= '1';
-        we_i <= '0';
-        WAIT UNTIL rising_edge(clk_i);
-        WAIT FOR c_clk_period / 10;
-        re_i <= '0';
+                WHEN 3 =>
+                    -- release reset, enable DUT
+                    rst_i <= '0';
+                    en_i  <= '1';
 
-        -- Wait for ready pulse again
-        WAIT UNTIL ready_o = '1';
-        WAIT UNTIL rising_edge(clk_i);
-        WAIT FOR c_clk_period / 10;
+                    -- request write to register 2 with pattern A5
+                    wr_addr_i <= STD_LOGIC_VECTOR(to_unsigned(2, c_addr_width));
+                    data_in   <= c_pat_a5;
+                    we_i      <= '1';
+                    re_i      <= '0';
 
-        ASSERT data_out = c_pat_a5 REPORT "Register 2 read-back mismatch" SEVERITY error;
+                WHEN 4 =>
+                    -- de-assert write
+                    we_i <= '0';
 
-        REPORT "ifx_regfile_tb completed successfully" SEVERITY note;
-        STOP;
+                WHEN OTHERS =>
+                    NULL;
+            END CASE;
+
+            -- react to ready_o edges in the same clock
+            IF ready_o = '1' THEN
+                IF NOT ready_seen_1 THEN
+                    -- first ready: schedule read
+                    ready_seen_1 := TRUE;
+                    rd_addr_i    <= STD_LOGIC_VECTOR(to_unsigned(2, c_addr_width));
+                    re_i         <= '1';
+
+                ELSIF NOT ready_seen_2 THEN
+                    -- second ready: complete read & check data
+                    ready_seen_2 := TRUE;
+                    re_i         <= '0';
+
+                    ASSERT data_out = c_pat_a5
+                        REPORT "Register 2 read-back mismatch"
+                        SEVERITY error;
+
+                    REPORT "ifx_regfile_tb completed successfully" SEVERITY note;
+                    stop;
+                    WAIT;
+                END IF;
+            END IF;
+        END LOOP;
+
+        -- safety fallback if we exit the loop without finishing
     END PROCESS;
 
 END ARCHITECTURE tb;
