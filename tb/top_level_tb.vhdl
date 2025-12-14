@@ -73,7 +73,7 @@ BEGIN
             REPORT "Integration regfile readback mismatch"
             SEVERITY error;
 
-        REPORT "ifx_regfile_integration_1_tb completed" SEVERITY note;
+        REPORT "top_level_tb completed" SEVERITY note;
         WAIT FOR 20 * clk_period_c;
 
         stop;
