@@ -106,7 +106,7 @@ Simulation helper scripts (all use GHDL + optional GTKWave):
 ATTENTION: scripts expect a Linux environment with `ghdl` and `gtkwave` on PATH.
 
 ```sh
-./run_ifx_regfile_tb.sh --clean --gui
+./top_level_tb.sh --clean --gui
 ```
 
 Each testbench is self-checking and reports mismatches via ASSERTs.
