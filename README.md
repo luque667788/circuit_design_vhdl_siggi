@@ -65,6 +65,17 @@ Drive `wr_en_i` for one clock to store `data_in` at `wr_addr_i`; `ready_o` stays
 
 ---
 
+## Top-level integration (`top_level_e`)
+
+`top_level_e` is structural: it wires `integration_uart_core_e` to `ifx_regfile_e`.
+- Inputs: `clk_i`, `rst_n_i`, UART byte `ascii_rx_i`, and `rx_ready_i` pulse.
+- UART core decodes a prefix nibble `1111` + address byte, then the payload byte; it outputs `reg_wr_addr_o`, `reg_data_in_o`, `reg_wr_en_o`.
+- Register file connects to those write signals; external reads use `reg_addr_i` → `reg_data_o`/`reg_ready_o` directly.
+
+See `tb/top_level_tb.vhdl` and `top_level_tb.sh` for the integrated flow (UART writes a register, then an external read fetches it).
+
+---
+
 ## Running the Testbench and Using Vivado
 
 Simulation helper scripts (all use GHDL + optional GTKWave):
@@ -74,10 +85,13 @@ Simulation helper scripts (all use GHDL + optional GTKWave):
 - `./run_ifx_regfile_tb.sh [--clean] [--gui]`
   - Unit test for the register file (`ifx_regfile_e`).
 - `./run_integration_uart_core_tb.sh [--clean] [--gui]`
-  - Unit test for the UART integration core FSM (`integration_uart_core`).
-- `./run_ifx_regfile_integration_1_tb.sh [--clean] [--gui]`
-  - Integration test: UART core writes to the regfile, then reads back via
-    external address.
+  - Unit test for the UART integration core FSM (`integration_uart_core_e/a`).
+- `./top_level_tb.sh [--clean] [--gui]`
+  - Full integration: `integration_uart_core` drives `ifx_regfile`; external
+    reads use `reg_addr_i`/`reg_data_o`/`reg_ready_o`.
+- `./run_all.sh [--clean] [--gui]`
+  - Convenience wrapper that runs the above in order (cell → regfile → UART
+    core → top-level integration).
 
 ATTENTION: scripts expect a Linux environment with `ghdl` and `gtkwave` on PATH.
 
@@ -89,14 +103,9 @@ Each testbench is self-checking and reports mismatches via ASSERTs.
 
 ### Note for Vivado users
 
-The testbench, as written, uses `std.env.stop` to end the simulation. Some Vivado flows do not support this import or the `stop` call directly.
+These testbenches use `std.env.stop` to end simulation. Some Vivado flows do not support this import or the `stop` call directly.
 
-If you run the testbench inside Vivado and hit issues, make these two changes in `tb/ifx_regfile_tb.vhdl`:
+If you run any testbench inside Vivado and hit issues, remove `USE std.env.ALL;` and the `stop;` call in that testbench (`tb/ifx_regfile_tb.vhdl`, `tb/integration_uart_core_tb.vhdl`, `tb/top_level_tb.vhdl`). Vivado can then control the end of simulation itself (e.g. via run time or TCL commands). The functional checks stay the same.
 
-- **Remove the library import**:
-  - Delete the line `USE std.env.ALL;`
-- **Remove the explicit stop call**:
-  - Delete the line `stop;` inside the stimulus process.
-
-Vivado can then control the end of simulation itself (e.g. via a run time or TCL commands), while the testbench still performs the same write/read checks. If you just want to use the register file in your own project, you only need to instantiate `fsm_3block_regfile` as shown above and follow the usage described in `docs/register_file_usage.md`.
+If you just want to use the register file in your own project, instantiate `ifx_regfile_e` as shown above and follow `docs/register_file_usage.md`.
 
