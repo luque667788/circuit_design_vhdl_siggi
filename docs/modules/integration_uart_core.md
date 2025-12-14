@@ -34,3 +34,9 @@ Operation (state flow)
 - `wait_data_st`: wait for next `rx_ready_i`; on pulse, go to `data_st`.
 - `data_st`: drive `reg_wr_en_o='1'`, `reg_wr_addr_o=addr_q_s`, `reg_data_in_o=ascii_rx_i`; then return to `idle_st`.
 - Reset drives state to `idle_st` and deasserts outputs.
+Notes
+- Write path is serial over UART (address byte with `1111` prefix, then data byte).
+- Regfile read path is not clocked by this core; reads are external via `top_level`.
+
+FSM Diagram
+![alt text](image.png)

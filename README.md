@@ -1,8 +1,8 @@
 ﻿# Register File (`ifx_regfile_e`)
 
-This repository provides a small synchronous register file you can drop into
-your own VHDL design. The main thing you will use is the entity
-`ifx_regfile_e` from `src/ifx_regfile_e.vhdl` with defaults in
+This repository demonstrates a UART-driven register interface. The primary
+block is the top-level wrapper `top_level_e` in `src/top_level_e.vhdl`, which
+wires `integration_uart_core_e` to `ifx_regfile_e` using shared defaults in
 `src/project_pkg.vhdl`.
 
 You do **not** need to understand the internal FSM; you only need the ports and the basic request/ready handshake. For a short, step-by-step usage guide, see `docs/register_file_usage.md`.
@@ -61,18 +61,28 @@ u_regfile : ifx_regfile_e
   );
 ```
 
-Drive `wr_en_i` for one clock to store `data_in` at `wr_addr_i`; `ready_o` stays low only while the internal FSM performs the write. Reads are purely combinational—just set `rd_addr_i` and observe `data_out`.
+Writes are always issued through the UART path:
+- Send two bytes in series: an address command (`1111` prefix + address nibble) then a data byte.
+- The UART core asserts a one-cycle `reg_wr_en_o` toward the regfile with the latched address/data.
+- `reg_ready_o` is low only during that write cycle.
+
+Reads are external and parallel: drive `reg_addr_i`; `reg_data_o` updates combinationally (no clocked read handshake).
 
 ---
 
 ## Top-level integration (`top_level_e`)
 
-`top_level_e` is structural: it wires `integration_uart_core_e` to `ifx_regfile_e`.
+`top_level_e` (see `src/top_level_e.vhdl`) is structural: it wires
+`integration_uart_core_e` to `ifx_regfile_e`.
 - Inputs: `clk_i`, `rst_n_i`, UART byte `ascii_rx_i`, and `rx_ready_i` pulse.
 - UART core decodes a prefix nibble `1111` + address byte, then the payload byte; it outputs `reg_wr_addr_o`, `reg_data_in_o`, `reg_wr_en_o`.
 - Register file connects to those write signals; external reads use `reg_addr_i` → `reg_data_o`/`reg_ready_o` directly.
 
 See `tb/top_level_tb.vhdl` and `top_level_tb.sh` for the integrated flow (UART writes a register, then an external read fetches it).
+
+Module data sheets: concise per-module docs live in `docs/modules/`
+(`ifx_reg_cell`, `ifx_regfile`, `integration_uart_core`, `top_level`). These
+replace the older standalone docs.
 
 ---
 

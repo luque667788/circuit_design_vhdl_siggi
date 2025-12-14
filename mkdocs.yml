@@ -1,0 +1,8 @@
+site_name: UART Register File Project
+nav:
+  - Home: SUMMARY.md
+  - Modules:
+      - Top Level: modules/top_level.md
+      - UART Core: modules/integration_uart_core.md
+      - Register File: modules/ifx_regfile.md
+      - Register Cell: modules/ifx_reg_cell.md

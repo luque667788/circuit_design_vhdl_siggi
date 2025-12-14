@@ -23,6 +23,6 @@ Instances
 - `ifx_regfile_e`: stores registers; handles external read and UART-driven writes.
 
 Operation
-- UART core watches `ascii_rx_i`/`rx_ready_i` for a command + data byte and asserts `reg_wr_en_s` with address/data.
-- Regfile writes on that strobe; `reg_ready_o` drops for that cycle.
-- External logic reads by driving `reg_addr_i`; `reg_data_o` updates combinationally.
+- Writes are always driven by UART in series: send address command (prefix `1111` + address nibble) then payload byte; UART core asserts one-cycle `reg_wr_en_s` with latched `reg_wr_addr_s` and `reg_data_in_s`.
+- Regfile writes on that strobe; `reg_ready_o` drops only during the write cycle.
+- Reads are external, parallel, and not clocked: drive `reg_addr_i` and observe `reg_data_o` (combinational path), using your own sampling if you need a registered read.
