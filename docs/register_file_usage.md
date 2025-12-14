@@ -1,6 +1,8 @@
 # Register File Quick Usage
 
-This is a short, practical guide for using `fsm_3block_regfile`. For a full description of ports and behaviour, see the top-level `README.md`.
+This is a short, practical guide for using `ifx_regfile_e`. For a full
+description of ports and behaviour, see the top-level `README.md`.
+All defaults live in `project_pkg.vhdl`; reset is active-low `rst_n_i`.
 
 ## What it is
 

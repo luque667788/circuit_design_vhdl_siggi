@@ -52,13 +52,16 @@ pushd "${PROJECT_ROOT}" >/dev/null
 
 GHDL_OPTS=(--std=08 --workdir="${BUILD_DIR}")
 VHDL_SOURCES=(
+	src/project_pkg.vhdl
 	src/ifx_regfile_e.vhdl
 	src/ifx_reg_cell_e.vhdl
 	src/ifx_reg_cell_a.vhdl
 	src/ifx_regfile_a.vhdl
-	src/integration_uart_e.vhdl
-	src/integration_uart_a.vhdl
-	tb/ifx_regfile_integration_1_tb.vhdl
+	src/integration_uart_core_e.vhdl
+	src/integration_uart_core_a.vhdl
+	src/top_level_e.vhdl
+	src/top_level_a.vhdl
+	tb/top_level_tb.vhdl
 )
 
 echo "[INFO] Analyzing design"
@@ -67,7 +70,7 @@ for src_file in "${VHDL_SOURCES[@]}"; do
 done
 
 echo "[INFO] Elaborating testbench"
-ghdl -e "${GHDL_OPTS[@]}" -o "${EXE_FILE}" ifx_regfile_integration_1_tb
+ghdl -e "${GHDL_OPTS[@]}" -o "${EXE_FILE}" top_level_tb
 
 echo "[INFO] Running simulation"
 "${EXE_FILE}" --vcd="${VCD_FILE}"

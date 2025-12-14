@@ -1,22 +1,21 @@
 # FSM State Diagram
 
-
 ```mermaid
 stateDiagram-v2
-    [*] --> ST_IDLE
-    state ST_IDLE {
-        ready_high: ready_o high
-    }www
-    state ST_WRITE {
-        write_action: store data_in at wr_addr_i of register file
-    }
-    state ST_DONE {
-        ready_high: ready_o high, data_out still holds valid data
-    }
+    [*] --> ready_st
+    ready_st --> busy_st: wr_en_i
+    busy_st --> ready_st
 
-    ST_IDLE --> ST_WRITE : wr_en_i
-    ST_WRITE --> ST_DONE
-    ST_DONE --> ST_IDLE
+    state ready_st {
+        note right: ready_o='1'
+    }
+    state busy_st {
+        note right: write strobed, ready_o drops for 1 clk
+    }
 ```
 
-Reads bypass the FSM entirely—they are simple combinational muxing from `rd_addr_i` to `data_out`.
+Reads bypass the FSM entirely—they are combinational muxing from `rd_addr_i`
+to `data_out`.
+
+Reset is active-low (`rst_n_i`); default widths and counts are defined in
+`project_pkg.vhdl`.
