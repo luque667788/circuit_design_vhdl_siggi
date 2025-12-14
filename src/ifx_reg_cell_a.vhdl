@@ -2,7 +2,7 @@ LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
 
 ARCHITECTURE ifx_reg_cell_a OF ifx_reg_cell_e IS
-    SIGNAL q_reg : STD_LOGIC_VECTOR(width_g - 1 DOWNTO 0) := (OTHERS => '0');
+    SIGNAL q_reg : STD_LOGIC_VECTOR(width_g - 1 DOWNTO 0);
 BEGIN
     PROCESS (clk_i)
     BEGIN

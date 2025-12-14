@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
 	cat <<'EOF'
-Usage: run_ifx_regfile_tb.sh [--gui] [--clean]
+Usage: run_ifx_regfile_integration_1_tb.sh [--gui] [--clean]
 
 Options:
   --gui    Launch GTKWave after the simulation finishes (if available).
@@ -39,8 +39,8 @@ done
 PROJECT_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 BUILD_DIR="${PROJECT_ROOT}/work"
 RESULTS_DIR="${PROJECT_ROOT}/results"
-VCD_FILE="${RESULTS_DIR}/ifx_regfile_tb.vcd"
-EXE_FILE="${RESULTS_DIR}/ifx_regfile_tb"
+VCD_FILE="${RESULTS_DIR}/ifx_regfile_integration_1_tb.vcd"
+EXE_FILE="${RESULTS_DIR}/ifx_regfile_integration_1_tb"
 
 if ${CLEAN_BUILD}; then
 	rm -rf "${BUILD_DIR}" "${RESULTS_DIR}"
@@ -56,7 +56,9 @@ VHDL_SOURCES=(
 	src/ifx_reg_cell_e.vhdl
 	src/ifx_reg_cell_a.vhdl
 	src/ifx_regfile_a.vhdl
-	tb/ifx_regfile_tb.vhdl
+	src/integration_uart_e.vhdl
+	src/integration_uart_a.vhdl
+	tb/ifx_regfile_integration_1_tb.vhdl
 )
 
 echo "[INFO] Analyzing design"
@@ -65,7 +67,7 @@ for src_file in "${VHDL_SOURCES[@]}"; do
 done
 
 echo "[INFO] Elaborating testbench"
-ghdl -e "${GHDL_OPTS[@]}" -o "${EXE_FILE}" ifx_regfile_tb
+ghdl -e "${GHDL_OPTS[@]}" -o "${EXE_FILE}" ifx_regfile_integration_1_tb
 
 echo "[INFO] Running simulation"
 "${EXE_FILE}" --vcd="${VCD_FILE}"

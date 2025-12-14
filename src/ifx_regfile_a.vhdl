@@ -3,54 +3,28 @@ USE ieee.std_logic_1164.ALL;
 USE ieee.numeric_std.ALL;
 
 ARCHITECTURE ifx_regfile_a OF fsm_3block_regfile IS
-    TYPE state_t IS (ST_IDLE, ST_WRITE, ST_READ, ST_DONE);
-    SIGNAL current_state : state_t := ST_IDLE;
-    SIGNAL next_state    : state_t := ST_IDLE;
-
     TYPE reg_array_t IS ARRAY (0 TO count_g - 1) OF STD_LOGIC_VECTOR(width_g - 1 DOWNTO 0);
     SIGNAL registers : reg_array_t;
-    SIGNAL out_buf   : STD_LOGIC_VECTOR(width_g - 1 DOWNTO 0) := (OTHERS => '0');
-    SIGNAL reg_load  : STD_LOGIC_VECTOR(0 TO count_g - 1) := (OTHERS => '0');
-BEGIN
-    -- State register with synchronous reset
-    state_reg : PROCESS (clk_i)
+    SIGNAL reg_load  : STD_LOGIC_VECTOR(0 TO count_g - 1);
+    SIGNAL busy_q    : STD_LOGIC;
+
+    -- read is not dependant on clock or state
+    -- just decodes the address to an index in the array and then outputs it.
+    FUNCTION mux_read(
+        addr : STD_LOGIC_VECTOR(addr_width_g - 1 DOWNTO 0);
+        regs : reg_array_t) RETURN STD_LOGIC_VECTOR IS
+        VARIABLE out_val : STD_LOGIC_VECTOR(width_g - 1 DOWNTO 0);
+        VARIABLE idx     : INTEGER;
     BEGIN
-        IF rising_edge(clk_i) THEN
-            IF rst_i = '1' THEN
-                current_state <= ST_IDLE;
-            ELSE
-                current_state <= next_state;
-            END IF;
+        idx := to_integer(unsigned(addr));
+        IF idx >= 0 AND idx < count_g THEN
+            out_val := regs(idx);
+        ELSE
+            out_val := (OTHERS => '0');
         END IF;
-    END PROCESS state_reg;
-
-    -- Next-state logic driven by control requests
-    next_state_logic : PROCESS (current_state, en_i, we_i, re_i)
+        RETURN out_val;
+    END FUNCTION mux_read;
     BEGIN
-        next_state <= current_state;
-
-        CASE current_state IS
-            WHEN ST_IDLE =>
-                IF en_i = '1' and we_i = '1' THEN
-                  next_state <= ST_WRITE; -- if both read and write are chosen, write has priority
-                end if;
-                if en_i = '1' and re_i = '1' then
-                  next_state <= ST_READ;
-                end if;
-            WHEN ST_WRITE =>
-                next_state <= ST_DONE;
-
-            WHEN ST_READ =>
-                next_state <= ST_DONE;
-
-            WHEN ST_DONE =>
-                next_state <= ST_IDLE;
-
-            WHEN OTHERS =>
-                next_state <= ST_IDLE; -- if an invalid state occurs, go to IDLE
-        END CASE;
-    END PROCESS next_state_logic;
-
     -- Instantiate one flip-flop register per storage element
     gen_registers : FOR i IN 0 TO count_g - 1 GENERATE
         reg_cell : ENTITY work.ifx_reg_cell_e
@@ -66,13 +40,14 @@ BEGIN
             );
     END GENERATE gen_registers;
 
-    -- Decode write enable per register
-    reg_load_decode : PROCESS (current_state, wr_addr_i)
+    -- Decode write enable per register for a given address
+    -- we only decode when write enable is asserted
+    reg_load_decode : PROCESS (wr_en_i, wr_addr_i)
         VARIABLE tmp : STD_LOGIC_VECTOR(0 TO count_g - 1); -- we can only edit signals once per process so we use a temporary variable
         VARIABLE idx : INTEGER;
     BEGIN
         tmp := (OTHERS => '0');
-        IF current_state = ST_WRITE THEN
+        IF wr_en_i = '1' THEN
             idx := to_integer(unsigned(wr_addr_i));
             IF idx >= 0 AND idx < count_g THEN
                 tmp(idx) := '1'; -- here we are "decoding" the address and enabling the corresponding register 
@@ -84,23 +59,22 @@ BEGIN
         -- TAKE CARE: we should only have one 1 in the reg_load signal (write one signal at a time)
     END PROCESS reg_load_decode;
 
-    -- Capture read data into output buffer
-    read_buffer : PROCESS (clk_i)
-        VARIABLE idx : INTEGER;
+    data_out <= mux_read(rd_addr_i, registers);
+
+    -- ready drops for one cycle when a write strobe is seen
+    busy_ff : PROCESS (clk_i)
     BEGIN
         IF rising_edge(clk_i) THEN
             IF rst_i = '1' THEN
-                out_buf <= (OTHERS => '0');
-            ELSIF current_state = ST_READ THEN
-                idx := to_integer(unsigned(rd_addr_i)); -- here we are "decoding" the address and enabling the corresponding register 
-                IF idx >= 0 AND idx < count_g THEN
-                    out_buf <= registers(idx); -- get data from the selected register
-                END IF;
+                busy_q <= '0';
+            ELSIF wr_en_i = '1' THEN
+                busy_q <= '1';
+            ELSE
+                busy_q <= '0';
             END IF;
         END IF;
-    END PROCESS read_buffer;
+    END PROCESS busy_ff;
 
-    data_out <= out_buf;
-    ready_o  <= '1' WHEN current_state = ST_DONE ELSE '0';
+    ready_o <= NOT busy_q;
 
 END ifx_regfile_a;

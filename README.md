@@ -11,19 +11,17 @@ You do **not** need to understand the internal FSM; you only need the ports and 
 ```vhdl
 ENTITY fsm_3block_regfile IS
 		GENERIC (
-				width_g : NATURAL := 8; -- bits per register
-				count_g : NATURAL := 8  -- number of registers
+			width_g      : NATURAL := 8; -- bits per register
+			count_g      : NATURAL := 8; -- number of registers
+			addr_width_g : NATURAL := 3  -- address width
 		);
 		PORT (
 				clk_i     : IN  STD_LOGIC;
-				rst_i     : IN  STD_LOGIC; -- async reset
+			rst_i     : IN  STD_LOGIC; -- async reset
 
-				en_i      : IN  STD_LOGIC; -- global enable
-				we_i      : IN  STD_LOGIC; -- write request
-				re_i      : IN  STD_LOGIC; -- read request
-
-				wr_addr_i : IN  STD_LOGIC_VECTOR(2 DOWNTO 0); -- write address
-				rd_addr_i : IN  STD_LOGIC_VECTOR(2 DOWNTO 0); -- read address
+			wr_en_i   : IN  STD_LOGIC; -- write strobe
+			wr_addr_i : IN  STD_LOGIC_VECTOR(addr_width_g - 1 DOWNTO 0); -- write address
+			rd_addr_i : IN  STD_LOGIC_VECTOR(addr_width_g - 1 DOWNTO 0); -- read address
 				data_in   : IN  STD_LOGIC_VECTOR(width_g - 1 DOWNTO 0);
 
 				data_out  : OUT STD_LOGIC_VECTOR(width_g - 1 DOWNTO 0);
@@ -34,6 +32,7 @@ END ENTITY fsm_3block_regfile;
 
 -- `width_g`: number of bits per register (default 8).
 -- `count_g`: number of registers (default 8).
+-- `addr_width_g`: address vector width (default 3, matches `count_g = 8`).
 
 For a quick, practical usage sequence (write/read handshakes and example timing), see `docs/register_file_usage.md`.
 
@@ -47,16 +46,14 @@ Minimal example:
 u_regfile : ENTITY work.fsm_3block_regfile
 		GENERIC MAP (
 				width_g => 8,  -- adjust as needed
-				count_g => 8
+				count_g => 8,
+				addr_width_g => 3
 		)
 		PORT MAP (
 				clk_i     => clk,
 				rst_i     => rst,
 
-				en_i      => reg_en,
-				we_i      => reg_we,
-				re_i      => reg_re,
-
+				wr_en_i   => reg_wr_en,
 				wr_addr_i => reg_wr_addr,
 				rd_addr_i => reg_rd_addr,
 				data_in   => reg_data_in,
@@ -66,7 +63,7 @@ u_regfile : ENTITY work.fsm_3block_regfile
 		);
 ```
 
-You are responsible for driving the handshake signals (`en_i`, `we_i`, `re_i`, addresses, `data_in`) and for sampling `data_out` when `ready_o` is high.
+Drive `wr_en_i` for one clock to store `data_in` at `wr_addr_i`; `ready_o` stays low only while the internal FSM performs the write. Reads are purely combinational—just set `rd_addr_i` and observe `data_out`.
 
 ---
 

@@ -9,35 +9,32 @@ This is a short, practical guide for using `fsm_3block_regfile`. For a full desc
 
 ## Basic rules
 
-- Only **one request at a time**: either write (`we_i`) or read (`re_i`), not both.
-- All signals are sampled on the **rising edge** of `clk_i`.
-- `en_i` must be `'1'` or the request is ignored.
-- When a request finishes, `ready_o` goes high for **one clock**.
+- Writes are initiated by pulsing `wr_en_i` high for **one** rising edge.
+- Keep `wr_addr_i` and `data_in` stable while `wr_en_i` is high.
+- `ready_o` is low only while the write FSM is busy; otherwise it is high.
+- Reads are **combinational**: set `rd_addr_i` and `data_out` updates immediately (within propagation delay).
 
 ## Write sequence
 
-1. Set `en_i = '1'`.
-2. Set `we_i = '1'`, `re_i = '0'`.
-3. Drive `wr_addr_i` and `data_in` to the desired values.
-4. Wait for one clock edge, then you can drop `we_i`.
-5. Wait until `ready_o = '1'` for one clock → write is done.
+1. Drive `wr_addr_i` and `data_in` with the target register and value.
+2. Assert `wr_en_i = '1'` for one rising edge of `clk_i`.
+3. Deassert `wr_en_i`.
+4. Wait for `ready_o` to return high (it goes low for one clock while the write commits).
 
-## Read sequence
+## Read behaviour
 
-1. Set `en_i = '1'`.
-2. Set `re_i = '1'`, `we_i = '0'`.
-3. Drive `rd_addr_i` to the desired register.
-4. Wait for one clock edge, then you can drop `re_i`.
-5. Wait until `ready_o = '1'` → on that clock, `data_out` holds the register value.
+- Because reads are combinational, you do **not** need a handshake.
+- Simply set `rd_addr_i` to the register you want and observe `data_out`.
+- If you prefer a registered read, add a flip-flop in your design and sample `data_out` on your own clock enable.
 
 ## Example: write then read
 
 - Write `x"A5"` to register 2:
-  - `en_i=1`, `we_i=1`, `re_i=0`, `wr_addr_i="010"`, `data_in=x"A5"` for one clock.
-  - Later, when `ready_o` pulses high, the write is complete.
+  - `wr_addr_i="010"`, `data_in=x"A5"`, pulse `wr_en_i` high for one clock.
+  - `ready_o` drops to `0` for that cycle and returns to `1` when the write is complete.
 - Read it back:
-  - `en_i=1`, `re_i=1`, `we_i=0`, `rd_addr_i="010"` for one clock.
-  - When `ready_o` pulses high, sample `data_out` → should be `x"A5"`.
+  - Drive `rd_addr_i="010"`.
+  - After combinational delay, `data_out` reflects `x"A5"` (no handshake needed).
 
 ## Simulation
 
