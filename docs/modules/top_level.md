@@ -11,7 +11,8 @@ Ports
 - `rx_ready_i` (in): pulse indicating `ascii_rx_i` is valid.
 - `reg_addr_i` (in): external read address.
 - `reg_data_o` (out): external read data from regfile.
-- `reg_ready_o` (out): regfile ready flag (low only during a write cycle).
+-- `reg_ready_o` (out): regfile ready flag (low only during a write cycle).
+-- `regN_o` (out, N = 0..31): direct read-only tap of register *N* from the internal regfile. Each signal is `reg_width_c` bits and updates combinationally, so external logic or testbenches can observe all stored values without going through the read-address mux.
 
 Internal Signals
 - `reg_wr_en_s`: write enable from UART core to regfile.
@@ -20,9 +21,9 @@ Internal Signals
 
 Instances
 - `integration_uart_core_e`: decodes UART bytes to produce write addr/data/en.
-- `ifx_regfile_e`: stores registers; handles external read and UART-driven writes.
+- `ifx_regfile_e`: stores registers; handles external read and UART-driven writes; its 32 per-register outputs are wired straight to the corresponding `regN_o` top-level ports for immediate visibility.
 
 Operation
 - Writes are always driven by UART in series: send address command (prefix `1111` + address nibble) then payload byte; UART core asserts one-cycle `reg_wr_en_s` with latched `reg_wr_addr_s` and `reg_data_in_s`.
 - Regfile writes on that strobe; `reg_ready_o` drops only during the write cycle.
-- Reads are external, parallel, and not clocked: drive `reg_addr_i` and observe `reg_data_o` (combinational path), using your own sampling if you need a registered read.
+- Reads are external, parallel, and not clocked: drive `reg_addr_i` and observe either `reg_data_o` or the matching `regN_o` export (they carry the same value for address `N`).

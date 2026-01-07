@@ -13,9 +13,10 @@ Ports
 - `rd_addr_i` (in): read address, `addr_width_g` bits.
 - `data_out` (out): combinational read data from `rd_addr_i`.
 - `ready_o` (out): write-ready flag; low only while the internal write strobe is active.
+- `regN_o` (out, N = 0..31): read-only copy of the content of register *N*. These signals mirror the internal array for quick observability or debug hooks.
 
 Internal Signals / Registers
-- Memory array of `count_g` registers, each `width_g` bits.
+- Memory array of `count_g` registers, each `width_g` bits (default 32 x 8 bits).
 - Simple ready flag (`ready_o`) that drops for the write cycle.
 
 Processes
@@ -24,5 +25,5 @@ Processes
 
 Operation
 - Write: set `wr_addr_i` and `data_in`, pulse `wr_en_i` high for one clock. `ready_o` goes low for that cycle, then returns high.
-- Read: set `rd_addr_i`; `data_out` updates combinationally (no handshake needed).
+- Read: set `rd_addr_i`; `data_out` updates combinationally (no handshake needed). Direct taps `regN_o` update at the same time and can be sampled without using `rd_addr_i`.
 - Reset: `rst_n_i` low clears all registers and drives `ready_o` high after reset.

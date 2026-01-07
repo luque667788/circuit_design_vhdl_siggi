@@ -4,9 +4,8 @@ USE ieee.numeric_std.ALL;
 USE work.project_pkg.ALL;
 
 ARCHITECTURE ifx_regfile_a OF ifx_regfile_e IS
-    TYPE reg_array_t IS ARRAY (0 TO count_g - 1)
-    OF STD_LOGIC_VECTOR(width_g - 1 DOWNTO 0);
-    SIGNAL registers_s : reg_array_t;
+    -- use the package `reg_array_t` to keep a consistent external type
+    SIGNAL registers_s : reg_array_t(0 TO count_g - 1);
     SIGNAL reg_load_s : STD_LOGIC_VECTOR(0 TO count_g - 1);
     SIGNAL busy_q_s : STD_LOGIC;
     -- MUX read function 
@@ -29,6 +28,9 @@ ARCHITECTURE ifx_regfile_a OF ifx_regfile_e IS
     END FUNCTION mux_read;
 
 BEGIN
+    ASSERT count_g = reg_count_c
+        REPORT "ifx_regfile_e exposes individual outputs only for count_g = reg_count_c"
+        SEVERITY failure;
     --create N number of register according to generate parameters
     gen_registers : FOR i IN 0 TO count_g - 1 GENERATE -- for that we use the reg_cell entity
         reg_cell : ifx_reg_cell_e
@@ -45,6 +47,41 @@ BEGIN
     END GENERATE gen_registers;
 
     data_out <= mux_read(rd_addr_i, registers_s); -- map read output from mux function
+    -- expose the internal register array on the new output port
+    registers_o <= registers_s;
+
+    reg0_o <= registers_s(0);
+    reg1_o <= registers_s(1);
+    reg2_o <= registers_s(2);
+    reg3_o <= registers_s(3);
+    reg4_o <= registers_s(4);
+    reg5_o <= registers_s(5);
+    reg6_o <= registers_s(6);
+    reg7_o <= registers_s(7);
+    reg8_o <= registers_s(8);
+    reg9_o <= registers_s(9);
+    reg10_o <= registers_s(10);
+    reg11_o <= registers_s(11);
+    reg12_o <= registers_s(12);
+    reg13_o <= registers_s(13);
+    reg14_o <= registers_s(14);
+    reg15_o <= registers_s(15);
+    reg16_o <= registers_s(16);
+    reg17_o <= registers_s(17);
+    reg18_o <= registers_s(18);
+    reg19_o <= registers_s(19);
+    reg20_o <= registers_s(20);
+    reg21_o <= registers_s(21);
+    reg22_o <= registers_s(22);
+    reg23_o <= registers_s(23);
+    reg24_o <= registers_s(24);
+    reg25_o <= registers_s(25);
+    reg26_o <= registers_s(26);
+    reg27_o <= registers_s(27);
+    reg28_o <= registers_s(28);
+    reg29_o <= registers_s(29);
+    reg30_o <= registers_s(30);
+    reg31_o <= registers_s(31);
 
     -- routine to map write enable and address to load signals for each register
     reg_load_decode : PROCESS (wr_en_i, wr_addr_i)

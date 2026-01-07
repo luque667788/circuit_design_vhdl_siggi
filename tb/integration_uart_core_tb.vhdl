@@ -1,5 +1,6 @@
 LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
+USE ieee.numeric_std.ALL;
 USE std.env.ALL;
 USE work.project_pkg.ALL;
 
@@ -13,9 +14,10 @@ ARCHITECTURE tb OF integration_uart_core_tb IS
   SIGNAL rst_n_i       : STD_LOGIC := '0';
   SIGNAL ascii_rx_i    : STD_LOGIC_VECTOR(reg_width_c - 1 DOWNTO 0) := (OTHERS => '0');
   SIGNAL rx_ready_i    : STD_LOGIC := '0';
-  SIGNAL reg_wr_addr_o : STD_LOGIC_VECTOR(reg_addr_width_c - 1 DOWNTO 0);
-  SIGNAL reg_data_in_o : STD_LOGIC_VECTOR(reg_width_c - 1 DOWNTO 0);
-  SIGNAL reg_wr_en_o   : STD_LOGIC;
+  SIGNAL reg_data_o    : STD_LOGIC_VECTOR(reg_width_c - 1 DOWNTO 0);
+  SIGNAL reg_ready_o   : STD_LOGIC;
+  SIGNAL reg_addr_i    : STD_LOGIC_VECTOR(reg_addr_width_c - 1 DOWNTO 0) := (OTHERS => '0');
+  SIGNAL reg_outputs_s : reg_array_t(0 TO reg_count_c - 1);
 
   PROCEDURE push_byte(
     SIGNAL ascii_rx : OUT STD_LOGIC_VECTOR(reg_width_c - 1 DOWNTO 0);
@@ -37,15 +39,47 @@ BEGIN
     WAIT FOR clk_period_c / 2;
   END PROCESS clk_p;
 
-  dut : ENTITY work.integration_uart_core_e
+  dut : ENTITY work.top_level_e
     PORT MAP(
-      clk_i         => clk_i,
-      rst_n_i       => rst_n_i,
-      ascii_rx_i    => ascii_rx_i,
-      rx_ready_i    => rx_ready_i,
-      reg_wr_addr_o => reg_wr_addr_o,
-      reg_data_in_o => reg_data_in_o,
-      reg_wr_en_o   => reg_wr_en_o
+      clk_i       => clk_i,
+      rst_n_i     => rst_n_i,
+      ascii_rx_i  => ascii_rx_i,
+      rx_ready_i  => rx_ready_i,
+      reg_data_o  => reg_data_o,
+      reg_ready_o => reg_ready_o,
+      reg_addr_i  => reg_addr_i,
+      reg0_o => reg_outputs_s(0),
+      reg1_o => reg_outputs_s(1),
+      reg2_o => reg_outputs_s(2),
+      reg3_o => reg_outputs_s(3),
+      reg4_o => reg_outputs_s(4),
+      reg5_o => reg_outputs_s(5),
+      reg6_o => reg_outputs_s(6),
+      reg7_o => reg_outputs_s(7),
+      reg8_o => reg_outputs_s(8),
+      reg9_o => reg_outputs_s(9),
+      reg10_o => reg_outputs_s(10),
+      reg11_o => reg_outputs_s(11),
+      reg12_o => reg_outputs_s(12),
+      reg13_o => reg_outputs_s(13),
+      reg14_o => reg_outputs_s(14),
+      reg15_o => reg_outputs_s(15),
+      reg16_o => reg_outputs_s(16),
+      reg17_o => reg_outputs_s(17),
+      reg18_o => reg_outputs_s(18),
+      reg19_o => reg_outputs_s(19),
+      reg20_o => reg_outputs_s(20),
+      reg21_o => reg_outputs_s(21),
+      reg22_o => reg_outputs_s(22),
+      reg23_o => reg_outputs_s(23),
+      reg24_o => reg_outputs_s(24),
+      reg25_o => reg_outputs_s(25),
+      reg26_o => reg_outputs_s(26),
+      reg27_o => reg_outputs_s(27),
+      reg28_o => reg_outputs_s(28),
+      reg29_o => reg_outputs_s(29),
+      reg30_o => reg_outputs_s(30),
+      reg31_o => reg_outputs_s(31)
     );
 
   stim_p : PROCESS
@@ -58,14 +92,25 @@ BEGIN
     WAIT FOR 2 * clk_period_c;
 
     -- Send address command (prefix + address)
-    push_byte(ascii_rx_i, rx_ready_i, prefix_cmd_c & "0010");
+    push_byte(
+      ascii_rx_i,
+      rx_ready_i,
+      prefix_cmd_c & STD_LOGIC_VECTOR(to_unsigned(2, reg_addr_width_c))
+    );
     WAIT FOR clk_period_c*5;
 
     -- Send data byte
     push_byte(ascii_rx_i, rx_ready_i, x"3C");
 
-    ASSERT reg_wr_addr_o = "0010" REPORT "reg_wr_addr_o mismatch" SEVERITY error;
-    ASSERT reg_data_in_o = x"3C" REPORT "reg_data_in_o mismatch" SEVERITY error;
+    -- wait a short while for write to occur
+    WAIT FOR 5 * clk_period_c;
+
+    -- read back through top-level reg interface
+    reg_addr_i <= STD_LOGIC_VECTOR(to_unsigned(2, reg_addr_width_c));
+    WAIT FOR 2 * clk_period_c;
+
+    ASSERT reg_data_o = x"3C" REPORT "reg_data_o mismatch" SEVERITY error;
+    ASSERT reg_outputs_s(2) = x"3C" REPORT "exported register 2 mismatch" SEVERITY error;
 
 
     REPORT "integration_uart_core_tb completed" SEVERITY note;

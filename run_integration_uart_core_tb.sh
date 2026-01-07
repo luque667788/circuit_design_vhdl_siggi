@@ -59,6 +59,8 @@ VHDL_SOURCES=(
   src/ifx_regfile_a.vhdl
   src/integration_uart_core_e.vhdl
   src/integration_uart_core_a.vhdl
+  src/top_level_e.vhdl
+  src/top_level_a.vhdl
   tb/integration_uart_core_tb.vhdl
 )
 

@@ -19,9 +19,10 @@ BEGIN
             addr_q_s <= (OTHERS => '0');
         ELSIF rising_edge(clk_i) THEN
             state_q_s <= state_d_s;
-            IF state_q_s = addr_st THEN
-                addr_q_s <= ascii_rx_i(reg_addr_width_c - 1 DOWNTO 0);
+            IF state_q_s = addr_st then
+                addr_q_s <= ascii_rx_i(reg_addr_width_c -1 DOWNTO 0);
             END IF;
+
         END IF;
     END PROCESS state_ff_p;
     --  choose what is the next state.
@@ -55,7 +56,7 @@ BEGIN
             WHEN idle_st =>
                 reg_wr_en_o <= '0';-- we gotta disable the right enable we previouly enabled
             WHEN addr_st =>
-                NULL;
+                NULL;                -- the upper bits are command prefix so we ignore them they should be an F -> "1111"
             WHEN wait_data_st =>
                 NULL;
             WHEN data_st =>
